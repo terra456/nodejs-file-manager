@@ -6,17 +6,17 @@ import FileSystem from './script/FileSystem.js';
 let folder = os.homedir();
 const fileSystem = new FileSystem(folder);
 
-const myMap = new Map([
+const userInput = new Map([
   ['up', fileSystem.levelUp],
   ['cd', fileSystem.changeDir],
   ['ls', fileSystem.listFolder],
   ['cat', fileSystem.readFile],
   ['add', fileSystem.createFile],
   ['mkdir', fileSystem.createDir],
-  ['rn', (oldName, newName) => {return (`dir ${oldName + newName}`)}],
-  ['cp', (file, dir) => {return ('list')}],
-  ['mv', (file, dir) => {return ('list')}],
-  ['rm', (file) => {return ('list')}],
+  ['rn', fileSystem.renameFile],
+  ['cp', fileSystem.copy],
+  ['mv', fileSystem.moveFile],
+  ['rm', fileSystem.removeFile],
   ['os', (name) => {return ('list')}],
   ['hash', (file) => {return ('list')}],
   ['compress', (file, dir) => {return ('list')}],
@@ -35,12 +35,15 @@ argv.forEach((el, i) => {
 
 process.stdin.on('data', async (data) => {
   const [comand, ...arg] = data.toString().trim().split(' ');
-  const operation = myMap.get(comand);
-  if (operation) {
-    await operation(...arg);
-
-  } else {
+  const operation = userInput.get(comand);
+  if (!operation) {
     process.stdout.write(`Invalid input\n`);
   }
-  process.stdout.write(`You are currently in ${fileSystem.curent}\n`);
+  try {
+    await operation(...arg);
+  } catch (e) {
+    process.stdout.write(`${e.message}\n`);
+  } finally {
+    process.stdout.write(`You are currently in ${fileSystem.curent}\n`);
+  }
 });

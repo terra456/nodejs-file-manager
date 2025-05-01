@@ -1,5 +1,5 @@
-import { readdir, opendir, access, constants, writeFile, mkdir } from 'node:fs/promises';
-import { createReadStream } from 'node:fs';
+import fs from 'node:fs/promises';
+import { createReadStream, rm } from 'node:fs';
 import path from 'node:path';
 
 export default class FileSystem {
@@ -12,32 +12,21 @@ export default class FileSystem {
     this.curent = path.resolve(this.curent, '..');
   }
 
-  isDir = async (folder) => {
-    try {
-      const dir = await opendir(folder);
-      if (dir) {
-        return true;
-      }
-    } catch (err) {
-      throw err;
-    }
-  }
-
   changeDir = async (name) => {
     const folder = path.resolve(this.curent, name);
     try {
-      const dir = await this.isDir(folder);
+      const dir = await fs.opendir(folder);
       if (dir) {
         this.curent = folder;
       }
-    } catch (err) {
-      console.error(`Operation failed`);
+    } catch (e) {
+      throw new Error(`Operation failed`);
     }
   }
 
   listFolder = async () => {
     try {
-      const files = await readdir(path.resolve(this.curent), { withFileTypes: true });
+      const files = await fs.readdir(path.resolve(this.curent), { withFileTypes: true });
       const list = files.sort((a, b) => b.isDirectory() - a.isDirectory()).map((el) => {
         return {
           Name: el.name,
@@ -45,15 +34,15 @@ export default class FileSystem {
         }
       });
       console.table(list);
-    } catch (err) {
-      console.log(`FS operation failed`);
+    } catch (e) {
+      throw new Error(`Operation failed`);
     }
   }
 
   readFile = async (name) => {
     try {
-      await access(path.join(this.curent, name), constants.R_OK);
-      const readStream = await createReadStream(path.join(this.curent, name), 'utf-8');
+      await fs.access(path.join(this.curent, name), fs.constants.R_OK);
+      const readStream = createReadStream(path.join(this.curent, name), 'utf-8');
       readStream.on('data', (chunk) => {
         process.stdout.write(chunk);
       });
@@ -61,27 +50,67 @@ export default class FileSystem {
         console.log('\n');
       });
     } catch (err) {
-      console.error(err.message);
+      throw new Error(`Operation failed`);
     }
   }
 
   createFile = async (name) => {
     try {
-      await writeFile(path.join(this.curent, name), '', { flag: 'wx' });
+      await fs.writeFile(path.join(this.curent, name), '', { flag: 'wx' });
     } catch (e) {
-      console.error(`FS operation failed`);
-      console.log(e.message);
+      throw new Error(`Operation failed`);
     }
   }
 
   createDir = async (name) => {
     try {
-      const createDir = await mkdir(path.join(this.curent, name), { recursive: true });
+      const createDir = await fs.mkdir(path.join(this.curent, name), { recursive: true });
       if (!createDir) {
         throw new Error('FS operation failed');
       }
     } catch (err) {
-      console.error(err.message);
+      throw new Error('FS operation failed');
+    }
+  }
+
+  renameFile = async (oldName, newName) => {
+    try {
+      const isNewExist = await fs.access(path.join(this.curent, newName), fs.constants.F_OK);
+      console.log(`FS operation failed`);
+    } catch (err) {
+      try {
+        await fs.rename(path.join(this.curent, oldName), path.join(this.curent, newName));        
+      } catch (error) {
+        throw new Error('FS operation failed');
+      }
+    }
+  }
+  
+  copy = async (file, directory) => {
+    try {
+      const dir = await fs.opendir(path.join(this.curent, directory));
+      if (dir) {
+        await fs.copyFile(path.join(this.curent, file), path.resolve(this.curent, directory, file), fs.constants.COPYFILE_EXCL);
+      }
+    } catch (err) {
+      throw new Error('FS operation failed');
+    }
+  }
+
+  removeFile = async (file) => {
+    try {
+      await fs.rm(path.join(this.curent, file));
+    } catch (error) {
+      throw new Error('FS operation failed');
+    }
+  }
+
+  moveFile = async (file, directory) => {
+    try {
+      await this.copy(file, directory);
+      await this.removeFile(file);
+    } catch (err) {
+      throw new Error('FS operation failed');
     }
   }
 }
