@@ -18,9 +18,9 @@ const userInput = new Map([
   ['mv', fileSystem.moveFile],
   ['rm', fileSystem.removeFile],
   ['os', (name) => {return ('list')}],
-  ['hash', (file) => {return ('list')}],
-  ['compress', (file, dir) => {return ('list')}],
-  ['decompress', (file, dir) => {return ('list')}],
+  ['hash', fileSystem.hashFile],
+  ['compress', fileSystem.compressFile],
+  ['decompress', fileSystem.decompressFile],
 ]);
 
 let username;
