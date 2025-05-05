@@ -6,9 +6,10 @@ import { pipeline } from 'node:stream/promises';
 import { createGzip, createUnzip } from 'node:zlib';
 
 export default class FileSystem {
-  constructor(home) {
+  constructor(home, eol = '\n') {
     this.home = path.normalize(home);
     this.curent = path.normalize(home);
+    this.eol = eol;
   }
 
   levelUp = () => {
@@ -51,7 +52,7 @@ export default class FileSystem {
         process.stdout.write(chunk);
       });
       readStream.on('end', () => {
-        console.log('\n');
+        console.log(this.eol);
       });
     } catch (e) {
       throw new Error(`FS operation failed. ${e.message ? 'Cause: ' + e.message : ''}`);
@@ -126,7 +127,7 @@ export default class FileSystem {
       const input = await createReadStream(path.join(this.curent, file));
       await input.pipe(hash).setEncoding('hex').pipe(process.stdout);
       input.on('end', () => {
-        process.stdout.end('\n');
+        process.stdout.end(this.eol);
       });
       return;
     } catch (e) {
